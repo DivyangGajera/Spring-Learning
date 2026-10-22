@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spring Boot Task Controller API Tester</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .dark ::-webkit-scrollbar-track { background: #1e293b; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- Top Navigation & Configuration Bar -->
+  <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-base font-bold tracking-tight">TaskController Dashboard</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Spring Boot REST API Client & Tester</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connection & Base URL Setting -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center bg-slate-100 dark:bg-slate-700/60 rounded-lg p-1 border border-slate-300 dark:border-slate-600 focus-within:ring-2 focus-within:ring-blue-500">
+          <span class="text-xs font-mono font-medium text-slate-400 px-2 select-none">API URL:</span>
+          <input id="baseUrlInput" type="text" value="http://localhost:8080" class="bg-transparent text-xs font-mono font-medium focus:outline-none w-44 sm:w-56 text-slate-800 dark:text-slate-100" />
+        </div>
+
+        <button onclick="testConnection()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
+          <span id="pingIndicator" class="h-2 w-2 rounded-full bg-slate-400 inline-block"></span>
+          <span>Test Ping</span>
+        </button>
+
+        <button onclick="openCreateModal()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <span>Create Task</span>
+        </button>
+
+        <button onclick="toggleInspector()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-lg transition-all border border-slate-300 dark:border-slate-600" title="Toggle Request/Response Inspector">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Primary Task Management Section (Left 8 cols) -->
+    <div class="lg:col-span-8 flex flex-col space-y-5">
+
+      <!-- Query & Filter Toolbar -->
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <!-- Filter Tabs -->
+        <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-lg self-start">
+          <button onclick="setFilter('all')" id="filter-all" class="filter-tab px-3 py-1.5 rounded-md text-xs font-semibold transition-all bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm">
+            All Tasks
+          </button>
+          <button onclick="setFilter('completed')" id="filter-completed" class="filter-tab px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 transition-all">
+            Completed (done=true)
+          </button>
+          <button onclick="setFilter('pending')" id="filter-pending" class="filter-tab px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 transition-all">
+            Pending (done=false)
+          </button>
+        </div>
+
+        <!-- Quick actions: Query parameter format & refresh -->
+        <div class="flex items-center space-x-2">
+          <label class="text-xs text-slate-500 font-mono flex items-center gap-1 cursor-pointer" title="Adjust the query string parameter to match backend mapping">
+            <span>Param:</span>
+            <select id="queryParamKey" onchange="fetchTasks()" class="bg-slate-100 dark:bg-slate-700 text-xs rounded border border-slate-300 dark:border-slate-600 py-1 px-1.5 font-mono">
+              <option value="done" selected>done (e.g. ?done=true)</option>
+              <option value="isCompleted">isCompleted (e.g. ?isCompleted=true)</option>
+            </select>
+          </label>
+
+          <button onclick="fetchTasks()" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition" title="Refresh List">
+            <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Fetch by ID Widget -->
+      <div class="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between gap-3 text-sm">
+        <div class="flex items-center space-x-2 w-full max-w-sm">
+          <span class="text-xs font-mono text-slate-400 select-none">GET /api/tasks/</span>
+          <input id="fetchIdInput" type="number" placeholder="Task ID (e.g. 1)" class="w-32 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          <button onclick="fetchSingleTask()" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded text-xs font-medium transition">Lookup</button>
+        </div>
+        <div class="text-xs text-slate-400 font-mono hidden sm:block">
+          Endpoint: <span class="text-blue-500">GET /{id}</span>
+        </div>
+      </div>
+
+      <!-- Task Cards List -->
+      <div class="relative">
+        <!-- Loading State Overlay -->
+        <div id="tasksLoading" class="hidden absolute inset-0 bg-white/70 dark:bg-slate-900/70 z-10 rounded-xl flex items-center justify-center backdrop-blur-[1px]">
+          <div class="flex items-center space-x-2 text-sm text-blue-600 font-medium">
+            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+            <span>Synchronizing with API...</span>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden bg-white dark:bg-slate-800 rounded-xl p-10 text-center border border-dashed border-slate-300 dark:border-slate-700">
+          <div class="mx-auto h-12 w-12 text-slate-400 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+          <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200">No tasks found</h3>
+          <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Either no tasks exist in the backend yet, or the filter criteria returned an empty set.</p>
+          <button onclick="openCreateModal()" class="mt-4 inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg shadow transition">
+            + Create your first task
+          </button>
+        </div>
+
+        <!-- Task List Container -->
+        <div id="tasksList" class="space-y-3">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Inspector / Documentation & Endpoints Info (Right 4 cols) -->
+    <div class="lg:col-span-4 flex flex-col space-y-5">
+      <!-- Controller Route Checklist Card -->
+      <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+          <span>Target Endpoints</span>
+          <span class="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 font-mono px-1.5 py-0.5 rounded">Active</span>
+        </h3>
+        <ul class="space-y-2 text-xs font-mono">
+          <li class="flex items-center justify-between p-1.5 rounded bg-slate-50 dark:bg-slate-700/40">
+            <span class="text-blue-600 dark:text-blue-400 font-semibold">GET</span>
+            <span class="text-slate-600 dark:text-slate-300">/api/tasks?done=...</span>
+          </li>
+          <li class="flex items-center justify-between p-1.5 rounded bg-slate-50 dark:bg-slate-700/40">
+            <span class="text-blue-600 dark:text-blue-400 font-semibold">GET</span>
+            <span class="text-slate-600 dark:text-slate-300">/api/tasks/{id}</span>
+          </li>
+          <li class="flex items-center justify-between p-1.5 rounded bg-slate-50 dark:bg-slate-700/40">
+            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">POST</span>
+            <span class="text-slate-600 dark:text-slate-300">/api/tasks/create</span>
+          </li>
+          <li class="flex items-center justify-between p-1.5 rounded bg-slate-50 dark:bg-slate-700/40">
+            <span class="text-amber-600 dark:text-amber-400 font-semibold">PUT</span>
+            <span class="text-slate-600 dark:text-slate-300">/api/tasks/{id}</span>
+          </li>
+          <li class="flex items-center justify-between p-1.5 rounded bg-slate-50 dark:bg-slate-700/40">
+            <span class="text-purple-600 dark:text-purple-400 font-semibold">PUT</span>
+            <span class="text-slate-600 dark:text-slate-300" title="Notice endpoint route name in TaskController">/api/tasks/toogle/{id}</span>
+          </li>
+          <li class="flex items-center justify-between p-1.5 rounded bg-slate-50 dark:bg-slate-700/40">
+            <span class="text-rose-600 dark:text-rose-400 font-semibold">DELETE</span>
+            <span class="text-slate-600 dark:text-slate-300">/api/tasks/{id} (204)</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Raw API Console / Live Inspector -->
+      <div id="inspectorPanel" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden">
+        <div class="px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Live API Inspector</h3>
+          </div>
+          <span id="inspectorStatusCode" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold">No requests yet</span>
+        </div>
+
+        <div class="p-4 space-y-3 font-mono text-xs">
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Request:</div>
+            <div id="inspectorReqMethodUrl" class="text-slate-800 dark:text-slate-200 break-all bg-slate-100 dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-700 text-[11px]">
+              -
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Request Payload:</div>
+            <pre id="inspectorReqBody" class="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 p-2 rounded text-[11px] overflow-x-auto max-h-28 border border-slate-200 dark:border-slate-700">null</pre>
+          </div>
+
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400 mb-1">Response Body:</div>
+            <pre id="inspectorResBody" class="bg-slate-100 dark:bg-slate-900 text-blue-600 dark:text-blue-400 p-2 rounded text-[11px] overflow-x-auto max-h-40 border border-slate-200 dark:border-slate-700 font-semibold">Awaiting API transaction...</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ======================= MODALS & POPUPS ======================= -->
+
+  <!-- Create / Edit Task Modal -->
+  <div id="taskModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700 transform transition-all">
+      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
+        <h3 id="modalTitle" class="text-sm font-bold text-slate-900 dark:text-white">Create New Task</h3>
+        <button onclick="closeTaskModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none">&times;</button>
+      </div>
+
+      <form id="taskForm" onsubmit="handleTaskSubmit(event)" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="taskIdHidden" value="" />
+
+        <div>
+          <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Task Title <span class="text-rose-500">*</span></label>
+          <input id="taskTitleInput" required type="text" placeholder="e.g. Implement authentication" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+          <textarea id="taskDescInput" rows="2" placeholder="Details or acceptance criteria..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <input type="checkbox" id="taskCompletedInput" class="h-4 w-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500" />
+          <label for="taskCompletedInput" class="font-medium text-slate-700 dark:text-slate-300 cursor-pointer">Mark as Completed</label>
+        </div>
+
+        <!-- Extra JSON Attributes for flexibility in TaskRequest -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="font-medium text-slate-700 dark:text-slate-300">Additional JSON Fields (TaskRequest)</label>
+            <span class="text-[10px] text-slate-400 font-mono">Optional valid JSON</span>
+          </div>
+          <textarea id="taskExtraJsonInput" rows="3" placeholder='{"dueDate": "2026-11-01", "priority": "HIGH"}' class="w-full font-mono bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-[11px]"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-2">
+          <button type="button" onclick="closeTaskModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium">Cancel</button>
+          <button type="submit" id="modalSubmitBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Detailed Single Task Inspector Modal -->
+  <div id="detailsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700">
+      <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>Task Details</span>
+          <span id="detailIdBadge" class="font-mono text-xs text-blue-600 bg-blue-50 dark:bg-blue-900/40 px-2 py-0.5 rounded">ID</span>
+        </h3>
+        <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none">&times;</button>
+      </div>
+      <div class="p-5 space-y-3">
+        <pre id="detailContentPre" class="bg-slate-900 text-emerald-400 p-3 rounded-lg text-xs font-mono overflow-auto max-h-72 border border-slate-700"></pre>
+        <div class="flex justify-end">
+          <button onclick="closeDetailsModal()" class="px-4 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-xs font-semibold rounded-lg text-slate-800 dark:text-slate-200">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROBUST ERROR POPUP MODAL (As Requested) -->
+  <div id="errorModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-rose-300 dark:border-rose-900 transform transition-all animate-bounce-short">
+      
+      <!-- Error Header -->
+      <div class="bg-rose-50 dark:bg-rose-950/60 border-b border-rose-200 dark:border-rose-900/60 px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="h-9 w-9 rounded-full bg-rose-100 dark:bg-rose-900/80 text-rose-600 dark:text-rose-300 flex items-center justify-center font-bold">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-rose-900 dark:text-rose-200">API Execution Failure</h3>
+            <p id="errorModalEndpoint" class="text-xs font-mono text-rose-700 dark:text-rose-400">FAILED: /api/tasks</p>
+          </div>
+        </div>
+
+        <span id="errorModalStatusBadge" class="px-2.5 py-1 text-xs font-mono font-bold rounded-md bg-rose-600 text-white shadow-sm">
+          500 Error
+        </span>
+      </div>
+
+      <!-- Error Content Details -->
+      <div class="p-5 space-y-4 text-xs">
+        <!-- Message -->
+        <div>
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Diagnostics / Message:</div>
+          <div id="errorModalMessage" class="p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 font-medium border border-rose-200 dark:border-rose-900/30">
+            Internal Server Error
+          </div>
+        </div>
+
+        <!-- Raw Server Body / Exception trace -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Raw Error Payload / Body:</span>
+            <button onclick="copyErrorPayload()" class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline">Copy Response</button>
+          </div>
+          <pre id="errorModalBody" class="bg-slate-900 text-rose-300 font-mono text-[11px] p-3 rounded-lg overflow-x-auto max-h-40 border border-slate-800"></pre>
+        </div>
+
+        <!-- Actionable troubleshooting steps -->
+        <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg p-3">
+          <div class="font-semibold text-amber-800 dark:text-amber-300 text-xs flex items-center gap-1.5 mb-1.5">
+            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Actionable Resolution Tips:</span>
+          </div>
+          <ul id="errorTroubleshootList" class="list-disc list-inside space-y-1 text-[11px] text-amber-700 dark:text-amber-400">
+            <li>Ensure the backend Spring Boot app is running on the specified Base URL.</li>
+            <li>Verify the CORS configuration allows this origin.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-2">
+        <button onclick="closeErrorModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium rounded-lg text-xs transition">
+          Dismiss & Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    // State
+    let currentFilter = 'all'; // 'all' | 'completed' | 'pending'
+    let allTasks = [];
+    let lastRawError = '';
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchTasks();
+    });
+
+    // Helper: Base URL
+    function getBaseUrl() {
+      const input = document.getElementById('baseUrlInput').value.trim();
+      return input.endsWith('/') ? input.slice(0, -1) : input;
+    }
+
+    // Ping / Test Connection
+    async function testConnection() {
+      const pingIndicator = document.getElementById('pingIndicator');
+      pingIndicator.className = 'h-2 w-2 rounded-full bg-amber-400 animate-ping inline-block';
+      
+      const url = `${getBaseUrl()}/api/tasks`;
+      logInspector('GET', url, null, 'Testing ping...');
+
+      try {
+        const response = await fetch(url, { method: 'GET' });
+        if (response.ok) {
+          pingIndicator.className = 'h-2 w-2 rounded-full bg-emerald-500 inline-block';
+          showToast(`Connected to backend! Status: ${response.status}`, 'success');
+          updateInspectorStatus(response.status, 'Connection OK');
+        } else {
+          pingIndicator.className = 'h-2 w-2 rounded-full bg-rose-500 inline-block';
+          triggerErrorPopup({
+            status: response.status,
+            method: 'GET',
+            url: url,
+            message: `Backend reachable but responded with status ${response.status}`,
+            body: await getResponseBodySafe(response),
+            tips: [
+              'Verify Spring Boot TaskController is mapped correctly at /api/tasks.',
+              'Check application logs in IDE/terminal.'
+            ]
+          });
+        }
+      } catch (err) {
+        pingIndicator.className = 'h-2 w-2 rounded-full bg-rose-500 inline-block';
+        handleNetworkError(err, 'GET', url);
+      }
+    }
+
+    // Set filter tabs
+    function setFilter(filterType) {
+      currentFilter = filterType;
+      document.querySelectorAll('.filter-tab').forEach(btn => {
+        btn.classList.remove('bg-white', 'dark:bg-slate-800', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm');
+        btn.classList.add('text-slate-600', 'dark:text-slate-400');
+      });
+
+      const activeBtn = document.getElementById(`filter-${filterType}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600', 'dark:text-slate-400');
+        activeBtn.classList.add('bg-white', 'dark:bg-slate-800', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm');
+      }
+
+      fetchTasks();
+    }
+
+    // Fetch Tasks with query parameter handling (matches @GetMapping(params = "done"))
+    async function fetchTasks() {
+      const paramKey = document.getElementById('queryParamKey').value; // 'done' or 'isCompleted'
+      let queryStr = '';
+
+      if (currentFilter === 'completed') {
+        queryStr = `?${paramKey}=true`;
+      } else if (currentFilter === 'pending') {
+        queryStr = `?${paramKey}=false`;
+      } else {
+        // If your backend strictly requires param "done" due to @GetMapping(params = "done"),
+        // we can pass both or no query string depending on backend mapping.
+        // If backend throws 400 when missing parameter due to params = "done", user can select or test.
+      }
+
+      const url = `${getBaseUrl()}/api/tasks${queryStr}`;
+      toggleLoading(true);
+      logInspector('GET', url, null, 'Fetching task list...');
+
+      try {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        const status = res.status;
+        const resBody = await getResponseBodySafe(res);
+        logInspector('GET', url, null, resBody, status);
+
+        if (!res.ok) {
+          triggerErrorPopup({
+            status: status,
+            method: 'GET',
+            url: url,
+            message: `Failed to load tasks. Backend returned HTTP ${status}.`,
+            body: resBody,
+            tips: [
+              'Notice the controller has @GetMapping(params = "done"). If status is 400, your controller may require "?done=true" or "?done=false". Try selecting Completed or Pending filter.',
+              'Verify that taskService.getAllTasks() does not throw NullPointerException.',
+              'Confirm Spring Boot is running and @CrossOrigin includes your origin.'
+            ]
+          });
+          renderTasks([]);
+          return;
+        }
+
+        let data = [];
+        try {
+          data = typeof resBody === 'object' ? resBody : JSON.parse(resBody);
+        } catch (e) {
+          triggerErrorPopup({
+            status: status,
+            method: 'GET',
+            url: url,
+            message: 'Invalid JSON response from server.',
+            body: resBody,
+            tips: ['Verify controller produces application/json and not raw string.']
+          });
+          return;
+        }
+
+        allTasks = Array.isArray(data) ? data : (data ? [data] : []);
+        renderTasks(allTasks);
+        showToast(`Loaded ${allTasks.length} task(s)`, 'info', 200);
+
+      } catch (err) {
+        handleNetworkError(err, 'GET', url);
+        renderTasks([]);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    // Fetch Single Task by ID
+    async function fetchSingleTask() {
+      const id = document.getElementById('fetchIdInput').value.trim();
+      if (!id) {
+        showToast('Please enter a valid Task ID to fetch.', 'warning');
+        return;
+      }
+
+      const url = `${getBaseUrl()}/api/tasks/${id}`;
+      logInspector('GET', url, null, 'Fetching single task...');
+
+      try {
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const status = res.status;
+        const resBody = await getResponseBodySafe(res);
+        logInspector('GET', url, null, resBody, status);
+
+        if (!res.ok) {
+          triggerErrorPopup({
+            status: status,
+            method: 'GET',
+            url: url,
+            message: status === 404 ? `Task with ID ${id} not found.` : `HTTP Error fetching task ID ${id}`,
+            body: resBody,
+            tips: [
+              `Ensure record ID ${id} exists in your database or in-memory list.`,
+              'Check your backend TaskService.getTask(id) implementation.'
+            ]
+          });
+          return;
+        }
+
+        // Show detailed modal
+        document.getElementById('detailIdBadge').textContent = `Task #${id}`;
+        document.getElementById('detailContentPre').textContent = typeof resBody === 'object' ? JSON.stringify(resBody, null, 2) : resBody;
+        document.getElementById('detailsModal').classList.remove('hidden');
+        showToast(`Task #${id} retrieved successfully`, 'success', status);
+
+      } catch (err) {
+        handleNetworkError(err, 'GET', url);
+      }
+    }
+
+    // Toggle Task Status: PUT /api/tasks/toogle/{id}
+    async function toggleTaskStatus(id) {
+      // Notice spelling in TaskController: @PutMapping("/toogle/{id}")
+      const url = `${getBaseUrl()}/api/tasks/toogle/${id}`;
+      logInspector('PUT', url, null, `Calling toggle endpoint for ID: ${id}`);
+
+      try {
+        const res = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const status = res.status;
+        const resBody = await getResponseBodySafe(res);
+        logInspector('PUT', url, null, resBody, status);
+
+        if (!res.ok) {
+          triggerErrorPopup({
+            status: status,
+            method: 'PUT',
+            url: url,
+            message: `Failed to toggle task #${id}.`,
+            body: resBody,
+            tips: [
+              'Notice the endpoint route in Java is @PutMapping("/toogle/{id}") (spelled with two "o"s).',
+              `Verify task with ID ${id} exists before toggling.`
+            ]
+          });
+          return;
+        }
+
+        showToast(`Task #${id} toggled!`, 'success', status);
+        fetchTasks(); // Refresh list to reflect state
+      } catch (err) {
+        handleNetworkError(err, 'PUT', url);
+      }
+    }
+
+    // Delete Task: DELETE /api/tasks/{id}
+    async function deleteTask(id) {
+      // Avoid raw alert/confirm dialogs
+      const confirmed = window.confirm ? window.confirm(`Are you sure you want to delete task #${id}?`) : true;
+      if (!confirmed) return;
+
+      const url = `${getBaseUrl()}/api/tasks/${id}`;
+      logInspector('DELETE', url, null, `Deleting task #${id}`);
+
+      try {
+        const res = await fetch(url, { method: 'DELETE' });
+        const status = res.status;
+        const resBody = await getResponseBodySafe(res);
+        logInspector('DELETE', url, null, resBody, status);
+
+        if (!res.ok) {
+          triggerErrorPopup({
+            status: status,
+            method: 'DELETE',
+            url: url,
+            message: `Failed to delete task #${id}.`,
+            body: resBody,
+            tips: [
+              `Check if task with ID ${id} exists or if foreign key constraints block deletion.`,
+              'Verify deleteTask(id) method in TaskService.'
+            ]
+          });
+          return;
+        }
+
+        showToast(`Task #${id} deleted (HTTP ${status})`, 'success', status);
+        fetchTasks();
+      } catch (err) {
+        handleNetworkError(err, 'DELETE', url);
+      }
+    }
+
+    // Create or Edit Submission
+    async function handleTaskSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('taskIdHidden').value;
+      const isEdit = Boolean(id);
+
+      const title = document.getElementById('taskTitleInput').value.trim();
+      const description = document.getElementById('taskDescInput').value.trim();
+      const completed = document.getElementById('taskCompletedInput').checked;
+      const extraJsonRaw = document.getElementById('taskExtraJsonInput').value.trim();
+
+      let payload = {
+        title: title,
+        description: description,
+        completed: completed
+      };
+
+      if (extraJsonRaw) {
+        try {
+          const parsed = JSON.parse(extraJsonRaw);
+          payload = { ...payload, ...parsed };
+        } catch (err) {
+          triggerErrorPopup({
+            status: 'Client JSON Validation',
+            method: 'FORM',
+            url: 'Local Form Parser',
+            message: 'Invalid JSON syntax entered in Additional JSON Fields.',
+            body: err.message,
+            tips: ['Ensure keys and values use double quotes: e.g. {"dueDate": "2026-12-01"}']
+          });
+          return;
+        }
+      }
+
+      const method = isEdit ? 'PUT' : 'POST';
+      const endpoint = isEdit ? `/api/tasks/${id}` : '/api/tasks/create';
+      const url = `${getBaseUrl()}${endpoint}`;
+
+      logInspector(method, url, payload, 'Submitting TaskRequest payload...');
+
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const status = res.status;
+        const resBody = await getResponseBodySafe(res);
+        logInspector(method, url, payload, resBody, status);
+
+        if (!res.ok) {
+          triggerErrorPopup({
+            status: status,
+            method: method,
+            url: url,
+            message: `Request failed with HTTP status ${status}. Task validation or creation error.`,
+            body: resBody,
+            tips: [
+              'Check Spring Boot @Valid rules on TaskRequest (e.g. @NotBlank, @NotNull).',
+              'Review response body for field-specific binding validation errors.',
+              'Verify TaskRequest class property names match the payload fields.'
+            ]
+          });
+          return;
+        }
+
+        closeTaskModal();
+        showToast(isEdit ? `Task #${id} updated!` : 'New task created successfully!', 'success', status);
+        fetchTasks();
+
+      } catch (err) {
+        handleNetworkError(err, method, url);
+      }
+    }
+
+    // Modal Operations
+    function openCreateModal() {
+      document.getElementById('modalTitle').textContent = 'Create New Task (POST /api/tasks/create)';
+      document.getElementById('taskIdHidden').value = '';
+      document.getElementById('taskTitleInput').value = '';
+      document.getElementById('taskDescInput').value = '';
+      document.getElementById('taskCompletedInput').checked = false;
+      document.getElementById('taskExtraJsonInput').value = '';
+      document.getElementById('taskModal').classList.remove('hidden');
+    }
+
+    function openEditModal(task) {
+      document.getElementById('modalTitle').textContent = `Edit Task #${task.id} (PUT /api/tasks/${task.id})`;
+      document.getElementById('taskIdHidden').value = task.id;
+      document.getElementById('taskTitleInput').value = task.title || task.name || '';
+      document.getElementById('taskDescInput').value = task.description || '';
+      document.getElementById('taskCompletedInput').checked = Boolean(task.completed ?? task.done ?? task.isCompleted);
+      
+      // Extract extras
+      const standardKeys = ['id', 'title', 'name', 'description', 'completed', 'done', 'isCompleted'];
+      const extras = {};
+      Object.keys(task).forEach(k => {
+        if (!standardKeys.includes(k)) extras[k] = task[k];
+      });
+      document.getElementById('taskExtraJsonInput').value = Object.keys(extras).length ? JSON.stringify(extras, null, 2) : '';
+
+      document.getElementById('taskModal').classList.remove('hidden');
+    }
+
+    function closeTaskModal() {
+      document.getElementById('taskModal').classList.add('hidden');
+    }
+
+    function closeDetailsModal() {
+      document.getElementById('detailsModal').classList.add('hidden');
+    }
+
+    // Render Task Cards
+    function renderTasks(tasks) {
+      const listContainer = document.getElementById('tasksList');
+      const emptyState = document.getElementById('emptyState');
+
+      listContainer.innerHTML = '';
+
+      if (!tasks || tasks.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      tasks.forEach(task => {
+        const taskId = task.id !== undefined ? task.id : '?';
+        const isCompleted = Boolean(task.completed ?? task.done ?? task.isCompleted);
+        const title = task.title || task.name || `Task #${taskId}`;
+        const desc = task.description || 'No description provided';
+
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl border transition-all duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 ${
+          isCompleted 
+            ? 'border-emerald-200 dark:border-emerald-950/40 bg-emerald-50/20' 
+            : 'border-slate-200 dark:border-slate-700'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-start space-x-3.5">
+            <button onclick="toggleTaskStatus(${taskId})" title="Click to toggle status (PUT /toogle/${taskId})" class="mt-1 flex-shrink-0 h-5 w-5 rounded border ${
+              isCompleted 
+                ? 'bg-emerald-600 border-emerald-600 text-white' 
+                : 'border-slate-300 dark:border-slate-600 hover:border-blue-500'
+            } flex items-center justify-center transition">
+              ${isCompleted ? '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+            </button>
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-mono font-bold text-slate-400">#${taskId}</span>
+                <h4 class="text-sm font-semibold text-slate-900 dark:text-white ${isCompleted ? 'line-through text-slate-400 dark:text-slate-500' : ''}">${escapeHtml(title)}</h4>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                  isCompleted 
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                }">
+                  ${isCompleted ? 'Completed' : 'Pending'}
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-lg">${escapeHtml(desc)}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-1.5 self-end sm:self-center">
+            <button onclick="fetchDetailsDirect(${taskId})" class="p-1.5 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-xs font-mono transition" title="Inspect Task Object (GET /{id})">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </button>
+            <button onclick='editTaskFromCard(${JSON.stringify(task).replace(/'/g, "&apos;")})' class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg text-xs transition" title="Edit Task (PUT /{id})">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            <button onclick="deleteTask(${taskId})" class="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg text-xs transition" title="Delete Task (DELETE /{id})">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        `;
+
+        listContainer.appendChild(card);
+      });
+    }
+
+    function editTaskFromCard(task) {
+      openEditModal(task);
+    }
+
+    function fetchDetailsDirect(id) {
+      document.getElementById('fetchIdInput').value = id;
+      fetchSingleTask();
+    }
+
+    // ROBUST ERROR HANDLING & POPUP MODAL
+    function triggerErrorPopup({ status, method, url, message, body, tips }) {
+      lastRawError = typeof body === 'object' ? JSON.stringify(body, null, 2) : String(body || 'No error payload returned');
+
+      document.getElementById('errorModalStatusBadge').textContent = typeof status === 'number' ? `HTTP ${status}` : status;
+      document.getElementById('errorModalEndpoint').textContent = `${method || 'API'} → ${url}`;
+      document.getElementById('errorModalMessage').textContent = message || 'An error occurred during API execution.';
+      document.getElementById('errorModalBody').textContent = lastRawError;
+
+      // Populate Tips
+      const tipsList = document.getElementById('errorTroubleshootList');
+      tipsList.innerHTML = '';
+      const finalTips = tips && tips.length ? tips : [
+        'Check network connectivity and server logs.',
+        'Ensure the endpoint matches the Spring Boot Controller request mapping.'
+      ];
+      finalTips.forEach(tip => {
+        const li = document.createElement('li');
+        li.textContent = tip;
+        tipsList.appendChild(li);
+      });
+
+      document.getElementById('errorModal').classList.remove('hidden');
+
+      // Also trigger a red toast for quick reference
+      showToast(`Error: ${message}`, 'error', status);
+    }
+
+    function closeErrorModal() {
+      document.getElementById('errorModal').classList.add('hidden');
+    }
+
+    function copyErrorPayload() {
+      if (lastRawError) {
+        copyToClipboard(lastRawError);
+        showToast('Error payload copied to clipboard', 'info');
+      }
+    }
+
+    function handleNetworkError(err, method, url) {
+      const isCorsOrDown = err.name === 'TypeError' && err.message.toLowerCase().includes('fetch');
+      const message = isCorsOrDown
+        ? 'Network Connection Refused or CORS Blocked.'
+        : `Frontend execution failed: ${err.message}`;
+
+      triggerErrorPopup({
+        status: 'Network / CORS Error',
+        method: method,
+        url: url,
+        message: message,
+        body: `Error Name: ${err.name}\nMessage: ${err.message}\nStack: ${err.stack || 'N/A'}`,
+        tips: [
+          'Verify your Spring Boot server is active and listening on the specified port.',
+          'Notice TaskController has @CrossOrigin(origins = "http://localhost:3000"). If serving frontend from another origin, update @CrossOrigin or allow "*".',
+          'Check browser devtools console for blocked CORS preflight (OPTIONS) requests.'
+        ]
+      });
+    }
+
+    // Helper: Extract response body safely
+    async function getResponseBodySafe(response) {
+      try {
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text || '(Empty Response Body)';
+        }
+      } catch (e) {
+        return `Failed reading response stream: ${e.message}`;
+      }
+    }
+
+    // Inspector Updater
+    function logInspector(method, url, requestPayload, responsePayload, status = null) {
+      document.getElementById('inspectorReqMethodUrl').textContent = `${method} ${url}`;
+      document.getElementById('inspectorReqBody').textContent = requestPayload ? JSON.stringify(requestPayload, null, 2) : 'null';
+      document.getElementById('inspectorResBody').textContent = typeof responsePayload === 'object' ? JSON.stringify(responsePayload, null, 2) : String(responsePayload);
+      
+      const statusBadge = document.getElementById('inspectorStatusCode');
+      if (status !== null) {
+        statusBadge.textContent = `Status: ${status}`;
+        statusBadge.className = `text-[11px] font-mono px-2 py-0.5 rounded font-semibold ${
+          status >= 200 && status < 300 
+            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+            : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+        }`;
+      } else {
+        statusBadge.textContent = 'Executing...';
+        statusBadge.className = 'text-[11px] font-mono px-2 py-0.5 rounded font-semibold bg-amber-100 text-amber-800';
+      }
+    }
+
+    function updateInspectorStatus(status, text) {
+      const statusBadge = document.getElementById('inspectorStatusCode');
+      statusBadge.textContent = `${status} ${text}`;
+    }
+
+    function toggleInspector() {
+      const panel = document.getElementById('inspectorPanel');
+      panel.classList.toggle('hidden');
+    }
+
+    // Toast Notifications
+    function showToast(message, type = 'info', httpStatus = null) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      let colors = 'bg-slate-800 text-white';
+      if (type === 'success') colors = 'bg-emerald-600 text-white';
+      if (type === 'error') colors = 'bg-rose-600 text-white';
+      if (type === 'warning') colors = 'bg-amber-600 text-white';
+
+      const statusTag = httpStatus ? `<span class="font-mono text-[10px] bg-black/25 px-1.5 py-0.5 rounded mr-1.5">${httpStatus}</span>` : '';
+
+      toast.className = `pointer-events-auto px-4 py-2.5 rounded-lg shadow-lg text-xs font-medium flex items-center space-x-2 transition-all duration-300 transform translate-y-2 opacity-0 ${colors}`;
+      toast.innerHTML = `
+        <div class="flex items-center">
+          ${statusTag}
+          <span>${escapeHtml(message)}</span>
+        </div>
+      `;
+
+      container.appendChild(toast);
+
+      // Animate In
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      // Auto dismiss
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Utilities
+    function toggleLoading(isLoading) {
+      const loader = document.getElementById('tasksLoading');
+      const refreshIcon = document.getElementById('refreshIcon');
+      if (isLoading) {
+        loader.classList.remove('hidden');
+        refreshIcon.classList.add('animate-spin');
+      } else {
+        loader.classList.add('hidden');
+        refreshIcon.classList.remove('animate-spin');
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function copyToClipboard(text) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Copy fallback failed', err);
+      }
+      document.body.removeChild(textArea);
+    }
+  </script>
+</body>
+</html>
