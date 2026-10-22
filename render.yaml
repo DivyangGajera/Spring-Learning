@@ -1,0 +1,16 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploy via: Render Dashboard -> New -> Blueprint
+services:
+  - type: web
+    name: spring-learning-demo
+    runtime: docker
+    plan: free
+    branch: main
+    # Render's own HTTP health check (the Dockerfile HEALTHCHECK is ignored here)
+    healthCheckPath: /api/tasks
+    envVars:
+      # Keep the JVM heap within the Free plan's 512MB container limit
+      - key: JAVA_OPTS
+        value: "-Xmx256m"
+      # PORT is injected by Render automatically (default 10000) and is read by
+      # server.port=${PORT:8080} in application.yaml — no need to set it here.

@@ -42,6 +42,6 @@ EXPOSE 8080
 ENV JAVA_OPTS=""
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
-    CMD curl -fsS http://localhost:8080/api/tasks || exit 1
+    CMD curl -fsS http://localhost:${PORT:-8080}/api/tasks || exit 1
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

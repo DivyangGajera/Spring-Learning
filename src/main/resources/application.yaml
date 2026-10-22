@@ -4,3 +4,5 @@ spring:
 
 server:
   address: 0.0.0.0
+  # Render injects PORT (default 10000); fall back to 8080 for local/Docker runs
+  port: ${PORT:8080}
