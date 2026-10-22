@@ -1,0 +1,22 @@
+# VCS / IDE
+.git
+.gitattributes
+.gitignore
+.idea
+.vscode
+*.iml
+*.iws
+*.ipr
+
+# Build output (always rebuilt inside the container)
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Docs
+HELP.md
+
+# Docker files themselves are not needed in the build context
+Dockerfile
+docker-compose.yml
+.dockerignore
